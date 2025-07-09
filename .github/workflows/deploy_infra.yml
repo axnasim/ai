@@ -1,0 +1,36 @@
+name: Infrastructure Automation
+
+on:
+  push:
+    branches:
+      - main  # Trigger on push to main branch
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    env:
+      # Pass secrets from GitHub Secrets to the workflow
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.8'
+
+    - name: Install Dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install openai python-dotenv
+
+    - name: Run Infrastructure Script
+      run: |
+        # Execute your Python script that analyzes git changes and generates Terraform
+        python auto_infra.py
+        # Optionally, run terraform commands if not integrated in script
