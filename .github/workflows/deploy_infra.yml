@@ -30,6 +30,11 @@ jobs:
         pip install openai python-dotenv
         pip install -r requirements.txt  # Ensure you have a requirements.txt in your repo
 
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: '1.4.5'  # Use latest stable or desired version
+
     - name: Run Infrastructure Script
       run: |
         # Execute your Python script that analyzes git changes and generates Terraform
