@@ -15,3 +15,6 @@ terraform.tfstate.backup
 # Ignore IDE/editor config folders if any
 .vscode/
 .idea/
+
+# Ignore auto_infra_copy.py
+auto_infra_copy.py
