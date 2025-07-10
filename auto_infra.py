@@ -92,6 +92,7 @@ def initialize_terraform():
         return True
     except subprocess.CalledProcessError as e:
         print(f"Error during Terraform initialization: {e.stderr}")
+        print(f"Error during Terraform initialization (stdout): {e.stdout}")
         return False
     except Exception as e:
         print(f"Error during Terraform initialization: {e}")
@@ -106,6 +107,7 @@ def plan_terraform_changes():
         return True
     except subprocess.CalledProcessError as e:
         print(f"Error during Terraform plan: {e.stderr}")
+        print(f"Error during Terraform plan (stdout): {e.stdout}")
         return False
     except Exception as e:
         print(f"Error during Terraform plan: {e}")
@@ -120,6 +122,7 @@ def apply_terraform_changes():
         return True
     except subprocess.CalledProcessError as e:
         print(f"Error during Terraform apply: {e.stderr}")
+        print(f"Error during Terraform apply (stdout): {e.stdout}")
         return False
     except Exception as e:
         print(f"Error during Terraform apply: {e}")
