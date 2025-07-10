@@ -69,7 +69,7 @@ def get_git_changes():
     return changes
 
 # Function: Call DeepSeek to analyze changes and create a structured recipe
-def analyze_changes_with_deepseek(changes):
+""" def analyze_changes_with_deepseek(changes):
     print("Calling DeepSeek to analyze changes...")
     change_list = "\n".join(changes)
     prompt = (
@@ -101,6 +101,52 @@ def analyze_changes_with_deepseek(changes):
             }
         )
         response.raise_for_status()  # Raise an exception for HTTP errors
+        reply_content = response.json()['choices'][0]['message']['content'].strip()
+        print("DeepSeek response received.")
+        # Parse JSON response
+        recipe = json.loads(reply_content)
+        print("Analysis JSON parsed successfully.")
+        return recipe
+    except json.JSONDecodeError:
+        print("Error: Unable to parse JSON from DeepSeek response.")
+        return []
+    except Exception as e:
+        print(f"Error during DeepSeek API call: {e}")
+        return [] """
+
+def analyze_changes_with_deepseek(changes):
+    print("Calling DeepSeek to analyze changes...")
+    change_list = "\n".join(changes)
+    prompt = (
+        "You are an AI that helps analyze code changes for infrastructure updates.\n"
+        "Given a list of file changes, output a JSON array of objects, each with:\n"
+        " - action: 'add', 'modify', or 'delete'\n"
+        " - resource_type: e.g., 'database', 'server', 'storage', 'network'\n"
+        " - details: brief description of the change\n"
+        "Respond with a valid JSON array.\n"
+        "Here are the changes:\n"
+        f"{change_list}\n"
+    )
+    try:
+        # Make a POST request to DeepSeek's API
+        response = requests.post(
+            'https://api.deepseek.com/v1/chat/completions',  # Replace with DeepSeek's API endpoint
+            headers={
+                'Content-Type': 'application/json',
+                'Authorization': f'Bearer {os.getenv("DEEPSEEK_API_KEY")}'
+            },
+            json={
+                'model': 'deepseek-gpt-4',  # Replace with the appropriate DeepSeek model
+                'messages': [
+                    {"role": "system", "content": "You analyze code changes for infrastructure."},
+                    {"role": "user", "content": prompt}
+                ],
+                'temperature': 0.2,
+                'max_tokens': 600,
+            }
+        )
+        response.raise_for_status()  # Raise an exception for HTTP errors
+        print("Raw API Response:", response.text)  # Print the raw response
         reply_content = response.json()['choices'][0]['message']['content'].strip()
         print("DeepSeek response received.")
         # Parse JSON response
