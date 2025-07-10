@@ -141,7 +141,7 @@ def main():
         sanity_checks()
 
         # Provide a high-level command
-        command = "Deploy an EC2 instance for a web server in us-east-1 with a t2.micro instance type."
+        command = "Deploy a webserver with Amazon Linux AMI in us-east-1."
 
         # Generate Terraform code using DeepSeek
         terraform_code = generate_terraform_with_deepseek(command)
