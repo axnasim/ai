@@ -45,13 +45,13 @@ def generate_terraform_with_deepseek(command):
     try:
         # Make a POST request to DeepSeek's API
         response = requests.post(
-            'https://api.deepseek.com/v1/chat/completions',  # Replace with DeepSeek's API endpoint
+            'https://api.deepseek.com/v1/chat/completions',
             headers={
                 'Content-Type': 'application/json',
                 'Authorization': f'Bearer {os.getenv("DEEPSEEK_API_KEY")}'
             },
             json={
-                'model': 'deepseek-chat',  # Use the correct model name
+                'model': 'deepseek-chat',
                 'messages': [
                     {"role": "system", "content": "You generate Terraform code from high-level commands."},
                     {"role": "user", "content": prompt}
@@ -60,12 +60,17 @@ def generate_terraform_with_deepseek(command):
                 'max_tokens': 600,
             }
         )
-        response.raise_for_status()  # Raise an exception for HTTP errors
+        response.raise_for_status()
         print("Raw API Response:", response.text)  # Print the raw response
         
         # Extract the content field from the response
         terraform_code = response.json()['choices'][0]['message']['content'].strip()
-        print("Generated Terraform Code:", terraform_code)  # Print the generated Terraform code
+        
+        # Remove Markdown code block delimiters if present
+        if terraform_code.startswith("```") and terraform_code.endswith("```"):
+            terraform_code = terraform_code.split("\n", 1)[1].rsplit("\n", 1)[0]
+            
+        print("Generated Terraform Code:", terraform_code)  # Print the cleaned Terraform code
         
         return terraform_code
     except Exception as e:
