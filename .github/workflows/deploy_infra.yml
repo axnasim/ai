@@ -32,5 +32,5 @@ jobs:
     - name: Run Infrastructure Script
       run: |
         # Execute your Python script that analyzes git changes and generates Terraform
-        python infra_ai/auto_infra.py
+        python auto_infra.py
         # Optionally, run terraform commands if not integrated in script
