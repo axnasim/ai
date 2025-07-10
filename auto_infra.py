@@ -99,7 +99,7 @@ def analyze_changes_with_gpt(changes):
     )
     try:
         response = openai.chat.completions.create( # Corrected line
-            model='gpt-4',
+            model='gpt-4.1',
             messages=[
                 {"role": "system", "content": "You analyze code changes for infrastructure."},
                 {"role": "user", "content": prompt}
