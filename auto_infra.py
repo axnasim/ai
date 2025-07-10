@@ -3,7 +3,7 @@ import os
 import subprocess
 import json
 from dotenv import load_dotenv
-import openai
+import requests  # Replace openai with requests
 
 print("Starting `auto_infra.py`...")
 
@@ -30,33 +30,19 @@ def sanity_checks():
     except FileNotFoundError:
         raise EnvironmentError("Git is not installed or not found in the PATH.")
 
-    # Check for OpenAI API key presence and validity
-    openai_key = os.getenv('DEEPSEEK_API_KEY')
-    if openai_key is None:
-        raise ValueError("The OPENAI_API_KEY is not set in the environment.")
-    if not openai_key.strip():
-        raise ValueError("The DEEPSEEK_API_KE in `.env` or GitHub Actions secret is empty.")
-    if not openai_key.startswith('sk-'):
+    # Check for DeepSeek API key presence and validity
+    deepseek_key = os.getenv('DEEPSEEK_API_KEY')
+    if deepseek_key is None:
+        raise ValueError("The DEEPSEEK_API_KEY is not set in the environment.")
+    if not deepseek_key.strip():
+        raise ValueError("The DEEPSEEK_API_KEY in `.env` or GitHub Actions secret is empty.")
+    if not deepseek_key.startswith('sk-'):
         raise ValueError("The DEEPSEEK_API_KEY is not in the correct format.")
     print("API key present and valid.")
 
     print("All sanity checks passed!")
 
 # Function: Get recent Git changes
-""" def get_git_changes():
-    print("Fetching recent git changes...")
-    try:
-        result = subprocess.run(['git', 'diff', '--name-status', 'HEAD~1', 'HEAD'], capture_output=True, text=True, check=True)
-        changes = result.stdout.strip().split('\n')
-        print("Git changes obtained:", changes)
-        return changes
-    except subprocess.CalledProcessError as e:
-        print(f"Error fetching Git changes: {e.stderr}")
-        raise
-    except Exception as e:
-        print(f"Error fetching Git changes: {e}")
-        raise """
-
 def get_git_changes():
     print("Fetching recent git changes...")
     # Check if there's more than one commit
@@ -82,10 +68,9 @@ def get_git_changes():
     print("Changes obtained:", changes)
     return changes
 
-
-# Function: Call GPT to analyze changes and create a structured recipe
-def analyze_changes_with_gpt(changes):
-    print("Calling GPT to analyze changes...")
+# Function: Call DeepSeek to analyze changes and create a structured recipe
+def analyze_changes_with_deepseek(changes):
+    print("Calling DeepSeek to analyze changes...")
     change_list = "\n".join(changes)
     prompt = (
         "You are an AI that helps analyze code changes for infrastructure updates.\n"
@@ -98,30 +83,39 @@ def analyze_changes_with_gpt(changes):
         f"{change_list}\n"
     )
     try:
-        response = openai.chat.completions.create( # Corrected line
-            model='gpt-4.1',
-            messages=[
-                {"role": "system", "content": "You analyze code changes for infrastructure."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.2,
-            max_tokens=600,
+        # Make a POST request to DeepSeek's API
+        response = requests.post(
+            'https://api.deepseek.com/v1/chat/completions',  # Replace with DeepSeek's API endpoint
+            headers={
+                'Content-Type': 'application/json',
+                'Authorization': f'Bearer {os.getenv("DEEPSEEK_API_KEY")}'
+            },
+            json={
+                'model': 'deepseek-gpt-4',  # Replace with the appropriate DeepSeek model
+                'messages': [
+                    {"role": "system", "content": "You analyze code changes for infrastructure."},
+                    {"role": "user", "content": prompt}
+                ],
+                'temperature': 0.2,
+                'max_tokens': 600,
+            }
         )
-        reply_content = response.choices[0].message.content.strip()  # Corrected line
-        print("GPT response received.")
+        response.raise_for_status()  # Raise an exception for HTTP errors
+        reply_content = response.json()['choices'][0]['message']['content'].strip()
+        print("DeepSeek response received.")
         # Parse JSON response
         recipe = json.loads(reply_content)
         print("Analysis JSON parsed successfully.")
         return recipe
     except json.JSONDecodeError:
-        print("Error: Unable to parse JSON from GPT response.")
+        print("Error: Unable to parse JSON from DeepSeek response.")
         return []
     except Exception as e:
-        print(f"Error during GPT API call: {e}")
+        print(f"Error during DeepSeek API call: {e}")
         return []
 
 # Function: Generate Terraform code based on the recipe
-def synthesize_infra_with_gpt(recipe):
+def synthesize_infra_with_deepseek(recipe):
     print("Generating Terraform code based on recipe...")
     prompt = (
         "Using the following infrastructure change description:\n"
@@ -130,20 +124,29 @@ def synthesize_infra_with_gpt(recipe):
         "Ensure the code is valid Terraform syntax."
     )
     try:
-        response = openai.chat.completions.create( # Corrected line
-            model='gpt-4',
-            messages=[
-                {"role": "system", "content": "You generate Terraform code from infrastructure change descriptions."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.2,
-            max_tokens=600,
+        # Make a POST request to DeepSeek's API
+        response = requests.post(
+            'https://api.deepseek.com/v1/chat/completions',  # Replace with DeepSeek's API endpoint
+            headers={
+                'Content-Type': 'application/json',
+                'Authorization': f'Bearer {os.getenv("DEEPSEEK_API_KEY")}'
+            },
+            json={
+                'model': 'deepseek-gpt-4',  # Replace with the appropriate DeepSeek model
+                'messages': [
+                    {"role": "system", "content": "You generate Terraform code from infrastructure change descriptions."},
+                    {"role": "user", "content": prompt}
+                ],
+                'temperature': 0.2,
+                'max_tokens': 600,
+            }
         )
-        reply_content = response.choices[0].message.content.strip() # Corrected line
+        response.raise_for_status()  # Raise an exception for HTTP errors
+        reply_content = response.json()['choices'][0]['message']['content'].strip()
         print("Terraform code generated.")
         return reply_content
     except Exception as e:
-        print(f"Error during GPT API call for Terraform code generation: {e}")
+        print(f"Error during DeepSeek API call for Terraform code generation: {e}")
         return ""
 
 # Function: Write Terraform code to file
@@ -206,21 +209,17 @@ def main():
         # Perform environment and dependency checks
         sanity_checks()
 
-        # Assign API key from environment
-        openai.api_key = os.getenv('OPENAI_API_KEY')
-        print("OpenAI API key set.")
-
         # Get recent Git changes
         changes = get_git_changes()
 
-        # Analyze changes with GPT
-        recipe = analyze_changes_with_gpt(changes)
+        # Analyze changes with DeepSeek
+        recipe = analyze_changes_with_deepseek(changes)
         if not recipe:
             print("No valid recipe generated. Exiting.")
             return
 
         # Generate Terraform code based on the recipe
-        terraform_code = synthesize_infra_with_gpt(recipe)
+        terraform_code = synthesize_infra_with_deepseek(recipe)
         if not terraform_code:
             print("No valid Terraform code generated. Exiting.")
             return
