@@ -31,13 +31,13 @@ def sanity_checks():
         raise EnvironmentError("Git is not installed or not found in the PATH.")
 
     # Check for OpenAI API key presence and validity
-    openai_key = os.getenv('OPENAI_API_KEY')
+    openai_key = os.getenv('DEEPSEEK_API_KEY')
     if openai_key is None:
         raise ValueError("The OPENAI_API_KEY is not set in the environment.")
     if not openai_key.strip():
-        raise ValueError("The OPENAI_API_KEY in `.env` or GitHub Actions secret is empty.")
+        raise ValueError("The DEEPSEEK_API_KE in `.env` or GitHub Actions secret is empty.")
     if not openai_key.startswith('sk-'):
-        raise ValueError("The OPENAI_API_KEY is not in the correct format.")
+        raise ValueError("The DEEPSEEK_API_KEY is not in the correct format.")
     print("API key present and valid.")
 
     print("All sanity checks passed!")
