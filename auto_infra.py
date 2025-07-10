@@ -14,39 +14,30 @@ def sanity_checks():
 
     # Check if Terraform is installed
     try:
-        subprocess.run(['terraform', '-version'], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.run(['terraform', '-version'], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         print("Terraform is installed.")
-    except subprocess.CalledProcessError:
-        raise EnvironmentError("Terraform is installed but the command failed.")
+    except subprocess.CalledProcessError as e:
+        raise EnvironmentError(f"Terraform is installed but the command failed: {e.stderr.decode()}")
     except FileNotFoundError:
         raise EnvironmentError("Terraform is not installed or not found in the PATH.")
 
     # Check if Git is installed
     try:
-        subprocess.run(['git', '--version'], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        subprocess.run(['git', '--version'], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         print("Git is installed.")
-    except subprocess.CalledProcessError:
-        raise EnvironmentError("Git is installed but the command failed.")
+    except subprocess.CalledProcessError as e:
+        raise EnvironmentError(f"Git is installed but the command failed: {e.stderr.decode()}")
     except FileNotFoundError:
         raise EnvironmentError("Git is not installed or not found in the PATH.")
-
-    # Check for `.env` file existence
-    if not os.path.exists('.env'):
-        raise FileNotFoundError("The `.env` file is missing. Please create it with your OpenAI API key.")
-    print("`.env` file found.")
-
-    # # Load environment variables
-    # load_dotenv()
-    # print("Environment variables loaded.")
 
     # Check for OpenAI API key presence and validity
     openai_key = os.getenv('OPENAI_API_KEY')
     if openai_key is None:
         raise ValueError("The OPENAI_API_KEY is not set in the environment.")
     if not openai_key.strip():
-        raise ValueError("The OPENAI_API_KEY in `.env` is empty.")
+        raise ValueError("The OPENAI_API_KEY in `.env` or GitHub Actions secret is empty.")
     if not openai_key.startswith('sk-'):
-        raise ValueError("The OPENAI_API_KEY in `.env` is not in the correct format.")
+        raise ValueError("The OPENAI_API_KEY is not in the correct format.")
     print("API key present and valid.")
 
     print("All sanity checks passed!")
@@ -55,12 +46,13 @@ def sanity_checks():
 def get_git_changes():
     print("Fetching recent git changes...")
     try:
-        result = subprocess.run(['git', 'diff', '--name-status', 'HEAD~1', 'HEAD'], capture_output=True, text=True)
-        if result.returncode != 0:
-            raise RuntimeError(f"Git command failed: {result.stderr}")
+        result = subprocess.run(['git', 'diff', '--name-status', 'HEAD~1', 'HEAD'], capture_output=True, text=True, check=True)
         changes = result.stdout.strip().split('\n')
         print("Git changes obtained:", changes)
         return changes
+    except subprocess.CalledProcessError as e:
+        print(f"Error fetching Git changes: {e.stderr}")
+        raise
     except Exception as e:
         print(f"Error fetching Git changes: {e}")
         raise
@@ -80,8 +72,8 @@ def analyze_changes_with_gpt(changes):
         f"{change_list}\n"
     )
     try:
-        response = openai.ChatCompletion.create(
-            model='gpt-4', 
+        response = openai.chat.completions.create( # Corrected line
+            model='gpt-4',
             messages=[
                 {"role": "system", "content": "You analyze code changes for infrastructure."},
                 {"role": "user", "content": prompt}
@@ -89,7 +81,7 @@ def analyze_changes_with_gpt(changes):
             temperature=0.2,
             max_tokens=600,
         )
-        reply_content = response.choices[0].message['content'].strip()
+        reply_content = response.choices[0].message.content.strip()  # Corrected line
         print("GPT response received.")
         # Parse JSON response
         recipe = json.loads(reply_content)
@@ -112,8 +104,8 @@ def synthesize_infra_with_gpt(recipe):
         "Ensure the code is valid Terraform syntax."
     )
     try:
-        response = openai.ChatCompletion.create(
-            model='gpt-4',  
+        response = openai.chat.completions.create( # Corrected line
+            model='gpt-4',
             messages=[
                 {"role": "system", "content": "You generate Terraform code from infrastructure change descriptions."},
                 {"role": "user", "content": prompt}
@@ -121,12 +113,12 @@ def synthesize_infra_with_gpt(recipe):
             temperature=0.2,
             max_tokens=600,
         )
-        reply_content = response.choices[0].message['content'].strip()
+        reply_content = response.choices[0].message.content.strip() # Corrected line
         print("Terraform code generated.")
-        return reply_content    
+        return reply_content
     except Exception as e:
         print(f"Error during GPT API call for Terraform code generation: {e}")
-        return ""   
+        return ""
 
 # Function: Write Terraform code to file
 def write_terraform_code(code, filename='infra.tf'):
@@ -143,40 +135,43 @@ def write_terraform_code(code, filename='infra.tf'):
 def initialize_terraform():
     print("Initializing Terraform...")
     try:
-        result = subprocess.run(['terraform', 'init'], capture_output=True, text=True)
-        if result.returncode != 0:
-            raise RuntimeError(f"Terraform initialization failed: {result.stderr}")
+        result = subprocess.run(['terraform', 'init'], capture_output=True, text=True, check=True)
         print("Terraform initialized successfully.")
         return True
+    except subprocess.CalledProcessError as e:
+        print(f"Error during Terraform initialization: {e.stderr}")
+        return False
     except Exception as e:
         print(f"Error during Terraform initialization: {e}")
-        raise
+        return False
 
 # Function: Plan Terraform changes
 def plan_terraform_changes():
     print("Planning Terraform changes...")
     try:
-        result = subprocess.run(['terraform', 'plan'], capture_output=True, text=True)
-        if result.returncode != 0:
-            raise RuntimeError(f"Terraform plan failed: {result.stderr}")
+        result = subprocess.run(['terraform', 'plan'], capture_output=True, text=True, check=True)
         print("Terraform plan completed successfully.")
         return True
+    except subprocess.CalledProcessError as e:
+        print(f"Error during Terraform plan: {e.stderr}")
+        return False
     except Exception as e:
         print(f"Error during Terraform plan: {e}")
-        raise
+        return False
 
 # Function: Apply Terraform changes
 def apply_terraform_changes():
     print("Applying Terraform changes...")
     try:
-        result = subprocess.run(['terraform', 'apply', '-auto-approve'], capture_output=True, text=True)
-        if result.returncode != 0:
-            raise RuntimeError(f"Terraform apply failed: {result.stderr}")
+        result = subprocess.run(['terraform', 'apply', '-auto-approve'], capture_output=True, text=True, check=True)
         print("Terraform changes applied successfully.")
         return True
+    except subprocess.CalledProcessError as e:
+        print(f"Error during Terraform apply: {e.stderr}")
+        return False
     except Exception as e:
         print(f"Error during Terraform apply: {e}")
-        raise
+        return False
 
 # The main function
 def main():
@@ -226,6 +221,7 @@ def main():
 
     except Exception as e:
         print(f"Script failed with error: {e}")
+        sys.exit(1)  # Exit with a non-zero code to indicate failure
 
 if __name__ == "__main__":
     main()
