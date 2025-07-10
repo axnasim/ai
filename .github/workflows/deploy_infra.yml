@@ -43,7 +43,7 @@ jobs:
         echo "auto_infra.py finished"
 
     - name: Upload infra.tf as artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       if: success()  # Only upload if the previous steps succeeded
       with:
         name: terraform-infra
