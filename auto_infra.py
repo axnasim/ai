@@ -43,7 +43,7 @@ def sanity_checks():
     print("All sanity checks passed!")
 
 # Function: Get recent Git changes
-def get_git_changes():
+""" def get_git_changes():
     print("Fetching recent git changes...")
     try:
         result = subprocess.run(['git', 'diff', '--name-status', 'HEAD~1', 'HEAD'], capture_output=True, text=True, check=True)
@@ -55,7 +55,33 @@ def get_git_changes():
         raise
     except Exception as e:
         print(f"Error fetching Git changes: {e}")
-        raise
+        raise """
+
+def get_git_changes():
+    print("Fetching recent git changes...")
+    # Check if there's more than one commit
+    result = subprocess.run(['git', 'rev-parse', '--verify', 'HEAD'], capture_output=True, text=True)
+    head_rev = result.returncode == 0
+
+    if not head_rev:
+        print("No commits found. Skipping git diff.")
+        return []
+
+    # If only one commit, no diff to show
+    # So check if there's more than 1 commit
+    result = subprocess.run(['git', 'rev-list', '--count', 'HEAD'], capture_output=True, text=True)
+    count = int(result.stdout.strip())
+
+    if count < 2:
+        print("Only one commit in repo, skipping git diff.")
+        return []
+
+    # Now perform diff between HEAD and previous commit
+    result = subprocess.run(['git', 'diff', '--name-status', 'HEAD~1', 'HEAD'], capture_output=True, text=True)
+    changes = result.stdout.strip().split('\n')
+    print("Changes obtained:", changes)
+    return changes
+
 
 # Function: Call GPT to analyze changes and create a structured recipe
 def analyze_changes_with_gpt(changes):
