@@ -1,4 +1,5 @@
-
+# Ignore dps33k folder
+dps33k/
 
 # Ignore Python cache files everywhere
 __pycache__/
