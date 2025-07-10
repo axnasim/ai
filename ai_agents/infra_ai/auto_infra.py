@@ -1,12 +1,19 @@
+import sys
+print("Python executable:", sys.executable)
+
 import os
 import subprocess
 from dotenv import load_dotenv
 import openai
 import json
 
+print("Starting `auto_infra.py`...")
+
 # =========================
 # Function: Perform sanity checks
 def sanity_checks():
+    print("Running sanity checks...")
+
     # Check if Terraform is installed
     try:
         subprocess.run(['terraform', '-version'], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -28,9 +35,11 @@ def sanity_checks():
     # Check for `.env` file existence
     if not os.path.exists('.env'):
         raise FileNotFoundError("The `.env` file is missing. Please create it with your OpenAI API key.")
+    print("`.env` file found.")
 
     # Load environment variables
     load_dotenv()
+    print("Environment variables loaded.")
 
     # Check for OpenAI API key presence and validity
     openai_key = os.getenv('OPENAI_API_KEY')
@@ -38,26 +47,33 @@ def sanity_checks():
         raise ValueError("The OPENAI_API_KEY is not set in the environment.")
     if not openai_key.strip():
         raise ValueError("The OPENAI_API_KEY in `.env` is empty.")
+    print("API key present.")
+
     print("All sanity checks passed!")
 
 # The main function
 def main():
+    print("Script started.")
     # Perform environment and dependency checks
     sanity_checks()
 
     # Assign API key from environment
     openai.api_key = os.getenv('OPENAI_API_KEY')
+    print("OpenAI API key set.")
 
     # --------- START OF CORE LOGIC ---------
 
     # Function: Get recent Git changes
     def get_git_changes():
+        print("Fetching recent git changes...")
         result = subprocess.run(['git', 'diff', '--name-status', 'HEAD~1', 'HEAD'], capture_output=True, text=True)
         changes = result.stdout.strip().split('\n')
+        print("Git changes obtained:", changes)
         return changes
 
     # Function: Call GPT to analyze changes and create a structured recipe
     def analyze_changes_with_gpt(changes):
+        print("Calling GPT to analyze changes...")
         change_list = "\n".join(changes)
         prompt = (
             "You are an AI that helps analyze code changes for infrastructure updates.\n"
@@ -71,7 +87,7 @@ def main():
         )
         try:
             response = openai.ChatCompletion.create(
-                model='gpt-4',  # or 'gpt-3.5-turbo'
+                model='gpt-4', 
                 messages=[
                     {"role": "system", "content": "You analyze code changes for infrastructure."},
                     {"role": "user", "content": prompt}
@@ -80,8 +96,10 @@ def main():
                 max_tokens=600,
             )
             reply_content = response.choices[0].message['content'].strip()
+            print("GPT response received.")
             # Parse JSON response
             recipe = json.loads(reply_content)
+            print("Analysis JSON parsed successfully.")
             return recipe
         except json.JSONDecodeError:
             print("Error: Unable to parse JSON from GPT response.")
@@ -92,6 +110,7 @@ def main():
 
     # Function: Generate Terraform code based on the recipe
     def synthesize_infra_with_gpt(recipe):
+        print("Generating Terraform code based on recipe...")
         prompt = (
             "Using the following infrastructure change description:\n"
             f"{json.dumps(recipe, indent=2)}\n"
@@ -100,19 +119,52 @@ def main():
         )
         try:
             response = openai.ChatCompletion.create(
-                model='gpt-4',
+                model='gpt-4',  
                 messages=[
-                    {"role": "system", "content": "You are an expert in writing Terraform code."},
+                    {"role": "system", "content": "You generate Terraform code from infrastructure change descriptions."},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.2,
-                max_tokens=800,
+                max_tokens=600,
             )
-            terraform_code = response.choices[0].message['content']
-            # Save the generated Terraform code
-            with open('main.tf', 'w') as f:
-                f.write(terraform_code)
-            print("Terraform code generated and saved to main.tf.")
+            reply_content = response.choices[0].message['content'].strip()
+            print("Terraform code generated.")
+            return reply_content    
         except Exception as e:
-            print(f"Error generating Terraform code: {e}")
-            
+            print(f"Error during GPT API call for Terraform code generation: {e}")
+            return ""   
+    # Function: Write Terraform code to file
+    def write_terraform_code(code, filename='infra.tf'):
+        print(f"Writing Terraform code to {filename}...")
+        with open(filename, 'w') as f:
+            f.write(code)
+        print(f"Terraform code written to {filename}.") 
+    # Function: Initialize Terraform
+    def initialize_terraform():
+        print("Initializing Terraform...")
+        result = subprocess.run(['terraform', 'init'], capture_output=True, text=True)
+        if result.returncode != 0:
+            print(f"Error during Terraform initialization: {result.stderr}")
+            return False
+        print("Terraform initialized successfully.")
+        return True 
+    # Function: Plan Terraform changes
+    def plan_terraform_changes():
+        print("Planning Terraform changes...")
+        result = subprocess.run(['terraform', 'plan'], capture_output=True, text=True)
+        if result.returncode != 0:
+            print(f"Error during Terraform plan: {result.stderr}")
+            return False
+        print("Terraform plan completed successfully.")
+        return True
+    # Function: Apply Terraform changes
+    def apply_terraform_changes():
+        print("Applying Terraform changes...")
+        result = subprocess.run(['terraform', 'apply', '-auto-approve'], capture_output=True, text=True)
+        if result.returncode != 0:
+            print(f"Error during Terraform apply: {result.stderr}")
+            return False
+        print("Terraform changes applied successfully.")
+        return True
+
+    # --------- END OF CORE LOGIC --------- 

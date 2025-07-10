@@ -1,1 +1,24 @@
+# Ignore the entire 'ai/' folder and its contents, including all subfolders
+../../ai/
+../../mlops/
+../../mlops_projects/
+
+# Explicitly track specific files inside 'ai/' that you want in version control
+# !ai/auto_infra.py
+# !ai/ec2_webserver.tf
+# !ai/requirements.txt
+
+# Ignore Python cache files everywhere
+__pycache__/
+*.pyc
+
+# Ignore environment files
 .env
+
+# Ignore Terraform state files
+terraform.tfstate
+terraform.tfstate.backup
+
+# Ignore IDE/editor config folders if any
+.vscode/
+.idea/
