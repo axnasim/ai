@@ -136,7 +136,7 @@ def analyze_changes_with_deepseek(changes):
                 'Authorization': f'Bearer {os.getenv("DEEPSEEK_API_KEY")}'
             },
             json={
-                'model': 'deepseek-gpt-4',  # Replace with the appropriate DeepSeek model
+                'model': 'deepseek-chat',  # Replace with the appropriate DeepSeek model
                 'messages': [
                     {"role": "system", "content": "You analyze code changes for infrastructure."},
                     {"role": "user", "content": prompt}
