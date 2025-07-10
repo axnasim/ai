@@ -136,7 +136,7 @@ def analyze_changes_with_deepseek(changes):
                 'Authorization': f'Bearer {os.getenv("DEEPSEEK_API_KEY")}'
             },
             json={
-                'model': 'deepseek-chat',  # Replace with the appropriate DeepSeek model
+                'model': 'deepseek-chat',  # Use the correct model name
                 'messages': [
                     {"role": "system", "content": "You analyze code changes for infrastructure."},
                     {"role": "user", "content": prompt}
@@ -147,9 +147,12 @@ def analyze_changes_with_deepseek(changes):
         )
         response.raise_for_status()  # Raise an exception for HTTP errors
         print("Raw API Response:", response.text)  # Print the raw response
+        
+        # Extract the content field from the response
         reply_content = response.json()['choices'][0]['message']['content'].strip()
-        print("DeepSeek response received.")
-        # Parse JSON response
+        print("Extracted Content:", reply_content)  # Print the extracted content
+        
+        # Parse the JSON string inside the content field
         recipe = json.loads(reply_content)
         print("Analysis JSON parsed successfully.")
         return recipe
