@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 import requests  # Use requests for DeepSeek API calls
 
 print("Starting `auto_infra.py`...")
+print("Current working directory:", os.getcwd())
 
 # =========================
 # Function: Perform sanity checks
