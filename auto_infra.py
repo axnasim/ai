@@ -35,9 +35,9 @@ def sanity_checks():
         raise FileNotFoundError("The `.env` file is missing. Please create it with your OpenAI API key.")
     print("`.env` file found.")
 
-    # Load environment variables
-    load_dotenv()
-    print("Environment variables loaded.")
+    # # Load environment variables
+    # load_dotenv()
+    # print("Environment variables loaded.")
 
     # Check for OpenAI API key presence and validity
     openai_key = os.getenv('OPENAI_API_KEY')
