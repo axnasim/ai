@@ -1,6 +1,6 @@
 {
     "commands": [
         "Deploy a webserver with Amazon Linux AMI in us-east-1",
-        "Create an S3 bucket with the name {bucket_name}."
+        "Create an aws s3 acl bucket with the name {bucket_name}."
     ]
 }
