@@ -11,6 +11,9 @@ print("Current working directory:", os.getcwd())
 # Hardcoded path to the config file
 CONFIG_FILE_PATH = "config.json"  # You can change this to the full path if needed
 
+# Path to the create_s3_bucket.py script
+CREATE_BUCKET_SCRIPT = "create_s3_bucket.py"
+
 # =========================
 # Function: Perform sanity checks
 def sanity_checks():
@@ -142,25 +145,40 @@ def read_commands_from_config(config_file):
     try:
         with open(config_file, 'r') as f:
             config = json.load(f)
-        return config.get('commands', [])
+        return config.get("commands", [])
     except Exception as e:
         print(f"Error reading config file {config_file}: {e}")
         return []
+
+# Function: Run the create_s3_bucket.py script
+def run_create_s3_bucket_script():
+    print("Running create_s3_bucket.py to generate a bucket name...")
+    try:
+        subprocess.run(["python", CREATE_BUCKET_SCRIPT], check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"Error running {CREATE_BUCKET_SCRIPT}: {e}")
+        return False
+    return True
 
 # The main function
 def main():
     print("Script started.")
     try:
-        # Perform environment and dependency checks
+        # Step 1: Run the create_s3_bucket.py script to generate a bucket name
+        if not run_create_s3_bucket_script():
+            print("Failed to generate S3 bucket name. Exiting.")
+            return
+
+        # Step 2: Perform environment and dependency checks
         sanity_checks()
 
-        # Read the commands from the config file
+        # Step 3: Read the commands from the config file
         commands = read_commands_from_config(CONFIG_FILE_PATH)
         if not commands:
             print(f"No commands found in the config file at {CONFIG_FILE_PATH}. Exiting.")
             return
 
-        # Process each command
+        # Step 4: Process each command
         for command in commands:
             print(f"Processing command: {command}")
 
