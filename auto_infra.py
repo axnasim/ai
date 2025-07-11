@@ -8,6 +8,9 @@ import requests  # Use requests for DeepSeek API calls
 print("Starting `auto_infra.py`...")
 print("Current working directory:", os.getcwd())
 
+# Hardcoded path to the config file
+CONFIG_FILE_PATH = "config.json"  # You can change this to the full path if needed
+
 # =========================
 # Function: Perform sanity checks
 def sanity_checks():
@@ -134,6 +137,16 @@ def apply_terraform_changes():
         print(f"Error during Terraform apply: {e}")
         return False
 
+# Function: Read commands from config file
+def read_commands_from_config(config_file):
+    try:
+        with open(config_file, 'r') as f:
+            config = json.load(f)
+        return config.get('commands', [])
+    except Exception as e:
+        print(f"Error reading config file {config_file}: {e}")
+        return []
+
 # The main function
 def main():
     print("Script started.")
@@ -141,32 +154,39 @@ def main():
         # Perform environment and dependency checks
         sanity_checks()
 
-        # Provide a high-level command
-        command = "Deploy a webserver with Amazon Linux AMI in us-east-1."
-
-        # Generate Terraform code using DeepSeek
-        terraform_code = generate_terraform_with_deepseek(command)
-        if not terraform_code:
-            print("No valid Terraform code generated. Exiting.")
+        # Read the commands from the config file
+        commands = read_commands_from_config(CONFIG_FILE_PATH)
+        if not commands:
+            print(f"No commands found in the config file at {CONFIG_FILE_PATH}. Exiting.")
             return
 
-        # Write Terraform code to file
-        write_terraform_code(terraform_code)
+        # Process each command
+        for command in commands:
+            print(f"Processing command: {command}")
 
-        # Initialize Terraform
-        if not initialize_terraform():
-            print("Terraform initialization failed. Exiting.")
-            return
+            # Generate Terraform code using DeepSeek
+            terraform_code = generate_terraform_with_deepseek(command)
+            if not terraform_code:
+                print("No valid Terraform code generated. Skipping this command.")
+                continue
 
-        # Plan Terraform changes
-        if not plan_terraform_changes():
-            print("Terraform plan failed. Exiting.")
-            return
+            # Write Terraform code to file
+            write_terraform_code(terraform_code)
 
-        # Apply Terraform changes
-        if not apply_terraform_changes():
-            print("Terraform apply failed. Exiting.")
-            return
+            # Initialize Terraform
+            if not initialize_terraform():
+                print("Terraform initialization failed. Skipping this command.")
+                continue
+
+            # Plan Terraform changes
+            if not plan_terraform_changes():
+                print("Terraform plan failed. Skipping this command.")
+                continue
+
+            # Apply Terraform changes
+            if not apply_terraform_changes():
+                print("Terraform apply failed. Skipping this command.")
+                continue
 
         print("Script completed successfully.")
 

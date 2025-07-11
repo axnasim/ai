@@ -1,0 +1,6 @@
+{
+    "commands": [
+        "Deploy a webserver with Amazon Linux AMI in us-east-1.",
+        "Create an S3 bucket for logging."
+    ]
+}
